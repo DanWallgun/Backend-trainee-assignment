@@ -8,7 +8,7 @@
 ## Overview
 - Язык программирования: Go
 - Для персистентности используется MongoDB
-- Юнит-тесты только для http handlers
+- Юнит-тесты только для http handlers. [Coverage report](https://htmlpreview.github.io/?https://github.com/DanWallgun/Backend-trainee-assignment/blob/master/api/pkg/handlers/test_handler_cover.html)
 - Валидация URL
 - Возможность задавать кастомные ссылки
 
