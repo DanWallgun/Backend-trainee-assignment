@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>handlers: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">urlshortener/pkg/handlers/errors.go (100.0%)</option>
+				
+				<option value="file1">urlshortener/pkg/handlers/mappings.go (100.0%)</option>
+				
+				<option value="file2">urlshortener/pkg/handlers/mappings_mock.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package handlers
+
+import (
+        "encoding/json"
+        "errors"
+        "net/http"
+)
+
+var (
+        // ErrBadShortURL ...
+        ErrBadShortURL = errors.New("Bad Request. Bad short URL")
+        // ErrURLNotFound ...
+        ErrURLNotFound = errors.New("Bad Request. URL not found")
+        // ErrInternalServerError ...
+        ErrInternalServerError = errors.New("Internal Server Error")
+        // ErrInvalidJSONFormat ...
+        ErrInvalidJSONFormat = errors.New("Bad Request. Invalid        JSON format")
+        // ErrIncorrectURL ...
+        ErrIncorrectURL = errors.New("Bad Request. Incorrect URL")
+        // ErrAlreadyUsed ...
+        ErrAlreadyUsed = errors.New(
+                "Bad request. This short URL is already in use in another collation",
+        )
+)
+
+// ErrorInfo contains error info for serialization
+type ErrorInfo struct {
+        StatusCode int    `json:"status"`
+        Detail     string `json:"detail"`
+}
+
+// ErrorHandler writes error info to Response
+func ErrorHandler(w http.ResponseWriter, err error, code int) <span class="cov8" title="1">{
+        jsonBytes, _ := json.Marshal(struct {
+                ErrorsInfo []*ErrorInfo `json:"errors"`
+        }{
+                ErrorsInfo: []*ErrorInfo{
+                        &amp;ErrorInfo{
+                                StatusCode: code,
+                                Detail:     err.Error(),
+                        },
+                },
+        })
+        w.WriteHeader(code)
+        w.Header().Set("Content-Type", "application/json")
+        w.Write(jsonBytes)
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package handlers
+
+import (
+        "encoding/json"
+        "io/ioutil"
+        "log"
+        "net/http"
+
+        "github.com/gorilla/mux"
+
+        "urlshortener/pkg/mappings"
+        "urlshortener/pkg/utils"
+)
+
+// MappingRepoInterface - interface for wrapper
+type MappingRepoInterface interface {
+        GetByShortURL(string) (*mappings.Mapping, error)
+        AddMapping(*mappings.Mapping) (*mappings.Mapping, error)
+        IncrementMappingViews(*mappings.Mapping) (*mappings.Mapping, error)
+}
+
+// MappingHandler - handles Shorten-Unshorten URL requests
+type MappingHandler struct {
+        MappingRepo MappingRepoInterface
+        Logger      *log.Logger
+}
+
+// Redirect - gets short url -&gt; maps to long url -&gt; redirect
+func (h *MappingHandler) Redirect(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        vars := mux.Vars(r)
+        shortURL, ok := vars["short_url"]
+        if !ok </span><span class="cov8" title="1">{
+                ErrorHandler(w, ErrBadShortURL, http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">mapping, err := h.MappingRepo.GetByShortURL(shortURL)
+        if err == mappings.ErrNoURL </span><span class="cov8" title="1">{
+                ErrorHandler(w, ErrURLNotFound, http.StatusBadRequest)
+                return
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                h.Logger.Printf("Internal Server Error. %s", err.Error())
+                ErrorHandler(w, ErrInternalServerError, http.StatusInternalServerError)
+                return
+        }</span>
+        <span class="cov8" title="1">mapping, err = h.MappingRepo.IncrementMappingViews(mapping)
+        if err != nil </span><span class="cov8" title="1">{
+                h.Logger.Printf("Internal Server Error. %s", err.Error())
+                ErrorHandler(w, ErrInternalServerError, http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">http.Redirect(w, r, mapping.LongURL, http.StatusSeeOther)</span>
+}
+
+// Add - adds a new mapping
+func (h *MappingHandler) Add(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        mapping := new(mappings.Mapping)
+        data, err := ioutil.ReadAll(r.Body)
+        if err != nil </span><span class="cov8" title="1">{
+                h.Logger.Printf("Internal Server Error. %s", err.Error())
+                ErrorHandler(w, ErrInternalServerError, http.StatusInternalServerError)
+                return
+        }</span>
+        <span class="cov8" title="1">r.Body.Close()
+
+        err = json.Unmarshal(data, mapping)
+        if err != nil </span><span class="cov8" title="1">{
+                ErrorHandler(w, ErrInvalidJSONFormat, http.StatusBadRequest)
+                return
+        }</span>
+        <span class="cov8" title="1">if !utils.ValidateURL(mapping.LongURL) </span><span class="cov8" title="1">{
+                ErrorHandler(w, ErrIncorrectURL, http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">mapping, err = h.MappingRepo.AddMapping(mapping)
+        if err == mappings.ErrAlreadyExists </span><span class="cov8" title="1">{
+                ErrorHandler(w, ErrAlreadyUsed, http.StatusBadRequest)
+                return
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                h.Logger.Printf("Internal Server Error. %s", err.Error())
+                ErrorHandler(w, ErrInternalServerError, http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">resp, err := json.Marshal(mapping)
+
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
+        w.Write(resp)</span>
+}
+
+// GetMappingInfo retrieves information about given short url: mapping and views
+func (h *MappingHandler) GetMappingInfo(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        vars := mux.Vars(r)
+        shortURL, ok := vars["short_url"]
+        if !ok </span><span class="cov8" title="1">{
+                ErrorHandler(w, ErrBadShortURL, http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">mapping, err := h.MappingRepo.GetByShortURL(shortURL)
+        if err == mappings.ErrNoURL </span><span class="cov8" title="1">{
+                ErrorHandler(w, ErrURLNotFound, http.StatusBadRequest)
+                return
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                h.Logger.Printf("Internal Server Error. %s", err.Error())
+                ErrorHandler(w, ErrInternalServerError, http.StatusInternalServerError)
+                return
+        }</span>
+
+        <span class="cov8" title="1">resp, err := json.Marshal(mapping)
+
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
+        w.Write(resp)</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: mappings.go
+
+// Package handlers is a generated GoMock package.
+package handlers
+
+import (
+        gomock "github.com/golang/mock/gomock"
+        reflect "reflect"
+        mappings "urlshortener/pkg/mappings"
+)
+
+// MockMappingRepoInterface is a mock of MappingRepoInterface interface
+type MockMappingRepoInterface struct {
+        ctrl     *gomock.Controller
+        recorder *MockMappingRepoInterfaceMockRecorder
+}
+
+// MockMappingRepoInterfaceMockRecorder is the mock recorder for MockMappingRepoInterface
+type MockMappingRepoInterfaceMockRecorder struct {
+        mock *MockMappingRepoInterface
+}
+
+// NewMockMappingRepoInterface creates a new mock instance
+func NewMockMappingRepoInterface(ctrl *gomock.Controller) *MockMappingRepoInterface <span class="cov8" title="1">{
+        mock := &amp;MockMappingRepoInterface{ctrl: ctrl}
+        mock.recorder = &amp;MockMappingRepoInterfaceMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockMappingRepoInterface) EXPECT() *MockMappingRepoInterfaceMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// GetByShortURL mocks base method
+func (m *MockMappingRepoInterface) GetByShortURL(arg0 string) (*mappings.Mapping, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetByShortURL", arg0)
+        ret0, _ := ret[0].(*mappings.Mapping)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GetByShortURL indicates an expected call of GetByShortURL
+func (mr *MockMappingRepoInterfaceMockRecorder) GetByShortURL(arg0 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByShortURL", reflect.TypeOf((*MockMappingRepoInterface)(nil).GetByShortURL), arg0)
+}</span>
+
+// AddMapping mocks base method
+func (m *MockMappingRepoInterface) AddMapping(arg0 *mappings.Mapping) (*mappings.Mapping, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "AddMapping", arg0)
+        ret0, _ := ret[0].(*mappings.Mapping)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// AddMapping indicates an expected call of AddMapping
+func (mr *MockMappingRepoInterfaceMockRecorder) AddMapping(arg0 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMapping", reflect.TypeOf((*MockMappingRepoInterface)(nil).AddMapping), arg0)
+}</span>
+
+// IncrementMappingViews mocks base method
+func (m *MockMappingRepoInterface) IncrementMappingViews(arg0 *mappings.Mapping) (*mappings.Mapping, error) <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "IncrementMappingViews", arg0)
+        ret0, _ := ret[0].(*mappings.Mapping)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// IncrementMappingViews indicates an expected call of IncrementMappingViews
+func (mr *MockMappingRepoInterfaceMockRecorder) IncrementMappingViews(arg0 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementMappingViews", reflect.TypeOf((*MockMappingRepoInterface)(nil).IncrementMappingViews), arg0)
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	reflect "reflect"
 	"testing"
 	"urlshortener/pkg/mappings"
@@ -24,7 +23,7 @@ func TestHandlerRedirect(t *testing.T) {
 	repo := NewMockMappingRepoInterface(ctrl)
 	handler := &MappingHandler{
 		MappingRepo: repo,
-		Logger:      log.New(os.Stderr, "LOG ", log.Lshortfile),
+		Logger:      log.New(ioutil.Discard, "LOG ", log.Lshortfile),
 	}
 
 	mapping := &mappings.Mapping{
@@ -122,7 +121,7 @@ func TestHandlerAdd(t *testing.T) {
 	repo := NewMockMappingRepoInterface(ctrl)
 	handler := &MappingHandler{
 		MappingRepo: repo,
-		Logger:      log.New(os.Stderr, "LOG ", log.Lshortfile),
+		Logger:      log.New(ioutil.Discard, "LOG ", log.Lshortfile),
 	}
 
 	mapping := &mappings.Mapping{
@@ -233,7 +232,7 @@ func TestHandlerGetMappingInfo(t *testing.T) {
 	repo := NewMockMappingRepoInterface(ctrl)
 	handler := &MappingHandler{
 		MappingRepo: repo,
-		Logger:      log.New(os.Stderr, "LOG ", log.Lshortfile),
+		Logger:      log.New(ioutil.Discard, "LOG ", log.Lshortfile),
 	}
 
 	mapping := &mappings.Mapping{
