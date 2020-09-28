@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="#" />
+    <title>URL Shortener</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        .main {
+            max-width: 50%;
+            margin: auto;
+        }
+        input[type=text], select {
+            width: 100%;
+            padding: 15px 20px;
+            margin: 10px 0;
+            display: inline-block;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+        input[type=submit] {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type=submit]:hover {
+            background-color: #45a049;
+        }
+        div {
+            border-radius: 5px;
+            background-color: #f2f2f2;
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main">
+        <form id="shorten_form" action="#" onsubmit="">
+            <label for="long_url">Long URL</label>
+            <input type="text" id="long_url" name="long_url" placeholder="Enter the link here">
+        
+            <label for="short_url">Short URL</label>
+            <input type="text" id="short_url" name="short_url" placeholder="Leave the field blank for a random short link">
+            
+            <input type="submit" value="Shorten URL">
+        </form>
+        <div id="info_block">
+            <div> Info: </div>
+            <div id="info"> </div>
+        </div>
+    </div>
+    
+    <script>
+        const shortenForm = document.getElementById('shorten_form')
+        shortenForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const formData = new FormData(shortenForm).entries()
+            const response = await fetch('/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(Object.fromEntries(formData))
+            });
+            if (response.status == 400) {
+                document.getElementById('info').innerText = "Short URL has already registered"
+            } else {
+                const result = await response.json();
+                document.getElementById('short_url').value = result["short_url"]
+                document.getElementById('info').innerText = "Short URL registration succeded"
+            }
+        })
+    </script>
+</body>
+
+</html>

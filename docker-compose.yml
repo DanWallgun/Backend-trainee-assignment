@@ -1,0 +1,21 @@
+version: '3.8'
+services: 
+    mongo:
+        image: mongo:latest
+        container_name: mongo
+        ports:
+            - 27017:27017
+        volumes: 
+            - mongodata:/data/db
+    api:
+        container_name: api
+        build: ./api
+        ports: 
+            - 8080:8080
+        depends_on: 
+            - mongo
+        environment: 
+            - MONGODB_URL=mongodb://mongo:27017/
+            - API_PORT=8080
+volumes: 
+    mongodata:
